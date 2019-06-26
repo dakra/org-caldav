@@ -395,8 +395,8 @@ from those events.
 * Syncing is currently pretty slow since everything is done
   synchronously.
 
-* Pretty much everything besides SUMMARY, DESCRIPTION and time is
-  ignored in iCalendar (like 'LOCATION', for instance).
+* Pretty much everything besides SUMMARY, DESCRIPTION, LOCATION and
+  time is ignored in iCalendar.
 
 #### How syncing happens (a.k.a. my little CalDAV rant)
 
