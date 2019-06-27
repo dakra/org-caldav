@@ -1,3 +1,19 @@
+# FORK NOTE
+
+This is a fork from https://github.com/dengste/org-caldav
+with the following patches applied:
+
+- Change defvar to defcustom
+- Replace newlines in LOCATION with something we can store
+- Bugfix for org-caldav-update-events-in-org that called org-caldav-create-time-range with incorrect number of arguments when eventdata has unexpected length.
+- Implement CLASS attribute of ics files
+- Fix condition to check for aborted sync
+- Correctly exclude skipped entries before ics export
+
+This corresponds to PRs #141, #159, #161, #167, #169, #170, #180,
+#181 (and some commits where no PR for exists).
+
+
 # org-caldav
 
 Caldav sync for Emacs Orgmode
