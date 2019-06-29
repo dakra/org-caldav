@@ -73,7 +73,7 @@ authentication with access URIs set in
 This is usually .ics, but on some servers (davmail), it is .EML"
   :type 'string)
 
-(defcustom org-caldav-files '("~/org/appointments.org")
+(defcustom org-caldav-files `(,(expand-file-name "appointments.org" org-directory))
   "List of files which should end up in calendar.
 The file in `org-caldav-inbox' is implicitly included, so you
 don't have to add it here."
@@ -90,7 +90,7 @@ one of these tags will not be exported."
 All items that carry one of these tags will not be exported."
   :type '(repeat string))
 
-(defcustom org-caldav-inbox "~/org/appointments.org"
+(defcustom org-caldav-inbox (expand-file-name "appointments.org" org-directory)
   "Where to put new entries obtained from calendar.
 
 This can be simply be a filename to an Org file where all new
