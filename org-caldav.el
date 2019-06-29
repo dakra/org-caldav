@@ -4,7 +4,7 @@
 
 ;; Author: David Engster <deng@randomsample.de>
 ;; Keywords: calendar, caldav
-;; Package-Requires: ((org "7"))
+;; Package-Requires: ((emacs "24.3") (org "7"))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -24,7 +24,7 @@
 ;;
 ;;; Commentary:
 
-;; This code is still alpha. Be prepared. Have backups. Take care.
+;; This code is still alpha.  Be prepared.  Have backups.  Take care.
 ;;
 ;; Otherwise, see README.
 
@@ -234,7 +234,9 @@ always = Always resume"
 	    "https://accounts.google.com/o/oauth2/token"
 	    "https://www.googleapis.com/auth/calendar"
 	    "https://apidata.googleusercontent.com/caldav/v2/%s/events"))
-  "List of providers that need OAuth2.  Each must be of the form
+  "List of providers that need OAuth2.
+
+Each must be of the form
 
     IDENTIFIER AUTH-URL TOKEN-URL RESOURCE-URL CALENDAR-URL
 
@@ -262,8 +264,8 @@ events URL for a calendar."
   "Whether oauth2 library is available.")
 
 (defvar org-caldav-previous-calendar nil
-  "The plist from org-caldav-calendars, which holds the last
-synced calendar. Used to properly resume an interupted attempt.")
+  "The plist from org-caldav-calendars, which holds the last synced calendar.
+Used to properly resume an interupted attempt.")
 
 (defvar org-caldav-event-list nil
   "The event list database.
@@ -293,7 +295,7 @@ and  action = {org->cal, cal->org, error:org->cal, error:cal->org}.")
 
 
 (defsubst org-caldav-add-event (uid md5 etag sequence status)
-  "Add event with UID, MD5, ETAG and STATUS."
+  "Add event with UID, MD5, ETAG, SEQUENCE and STATUS."
   (setq org-caldav-event-list
 	(append org-caldav-event-list
 		(list (list uid md5 etag sequence status)))))
@@ -355,13 +357,13 @@ Report an error with further details if that is not the case."
 	 (header nil)
 	 (options nil))
     (when (not buffer)
-      (error "Retrieving URL %s failed." url))
+      (error "Retrieving URL %s failed" url))
     (with-current-buffer buffer
       (goto-char (point-min))
       (when (not (re-search-forward "^HTTP[^ ]* \\([0-9]+ .*\\)$"
 				    (point-at-eol) t))
 	(switch-to-buffer buffer)
-	(error "No valid HTTP response from URL %s." url))
+	(error "No valid HTTP response from URL %s" url))
       (let ((response (match-string 1)))
 	(when (not (string-match "2[0-9][0-9].*" response))
 	  (switch-to-buffer buffer)
@@ -374,7 +376,7 @@ Report an error with further details if that is not the case."
   t)
 
 (defun org-caldav-check-oauth2 (provider)
-  "Check if we have to do OAuth2 authentication.
+  "Check if we have to do OAuth2 authentication for PROVIDER.
 If that is the case, also check that everything is installed and
 configured correctly, and throw an user error otherwise."
   (when (null (assoc provider org-caldav-oauth2-providers))
@@ -467,7 +469,7 @@ Also sets `org-caldav-empty-calendar' if calendar is empty."
     (unless (or (= (/ status 100) 2)
 		(= status 404))
       (org-caldav-debug-print 1 "Got error status from PROPFIND: " output)
-      (error "Could not query CalDAV URL %s." (org-caldav-events-url)))
+      (error "Could not query CalDAV URL %s" (org-caldav-events-url)))
     (if (= status 404)
 	(progn
 	  (org-caldav-debug-print 1 "Got 404 status - assuming calendar is new and empty.")
@@ -509,7 +511,7 @@ Return list with elements (uid . etag)."
        ((or (null output)
 	    (zerop (length output)))
 	;; This is definitely an error.
-	(error "Error while getting eventlist from %s." (org-caldav-events-url)))
+	(error "Error while getting eventlist from %s" (org-caldav-events-url)))
        ((and (= (length output) 1)
 	     (stringp (car-safe (car output))))
 	(let ((status (plist-get (cdar output) 'DAV:status)))
@@ -517,9 +519,9 @@ Return list with elements (uid . etag)."
 	      ;; This is an empty directory
 	      'empty
 	    (if status
-		(error "Error while getting eventlist from %s. Got status code: %d."
+		(error "Error while getting eventlist from %s.  Got status code: %d"
 		       (org-caldav-events-url) status)
-	      (error "Error while getting eventlist from %s."
+	      (error "Error while getting eventlist from %s"
 		     (org-caldav-events-url))))))))))
 
 (defun org-caldav-get-event (uid &optional with-headers)
@@ -606,15 +608,15 @@ be caught and a message displayed instead."
        nil))))
 
 (defun org-caldav-delete-everything (prefix)
-  "Delete all events from Calendar and removes state file.
+  "Delete all events from Calendar and remove state file.
 Again: This deletes all events in your calendar.  So only do this
-if you're really sure.  This has to be called with a prefix, just
+if you're really sure.  This has to be called with a PREFIX, just
 so you don't do it by accident."
   (interactive "P")
   (if (not prefix)
       (message "This function has to be called with a prefix.")
     (unless (or org-caldav-empty-calendar
-		(not (y-or-n-p "This will delete EVERYTHING in your calendar. \
+		(not (y-or-n-p "This will delete EVERYTHING in your calendar.  \
 Are you really sure? ")))
       (let ((events (org-caldav-get-event-etag-list))
 	    (counter 0)
@@ -694,48 +696,43 @@ Are you really sure? ")))
       (cond
        ((not dbentry)
 	;; Event is not yet in database, so add it.
-	(org-caldav-debug-print 1
-	 (format "Cal UID %s: New" (car cur)))
+	(org-caldav-debug-print 1 (format "Cal UID %s: New" (car cur)))
 	(org-caldav-add-event (car cur) nil (cdr cur) nil 'new-in-cal))
        ((or (eq (org-caldav-event-status dbentry) 'changed-in-org)
 	    (eq (org-caldav-event-status dbentry) 'deleted-in-org))
-	(org-caldav-debug-print 1
-	 (format "Cal UID %s: Ignoring (Org always wins)." (car cur))))
+	(org-caldav-debug-print
+         1 (format "Cal UID %s: Ignoring (Org always wins)." (car cur))))
        ((null (org-caldav-event-etag dbentry))
-	(org-caldav-debug-print 1
-	 (format "Cal UID %s: No Etag. Mark as change, so putting it again." (car cur)))
+	(org-caldav-debug-print
+         1 (format "Cal UID %s: No Etag. Mark as change, so putting it again." (car cur)))
 	(org-caldav-event-set-status dbentry 'changed-in-org))
        ((not (string= (cdr cur) (org-caldav-event-etag dbentry)))
 	;; Event's etag changed.
-	(org-caldav-debug-print 1
-	 (format "Cal UID %s: Changed" (car cur)))
+	(org-caldav-debug-print 1 (format "Cal UID %s: Changed" (car cur)))
 	(org-caldav-event-set-status dbentry 'changed-in-cal)
 	(org-caldav-event-set-etag dbentry (cdr cur)))
        ((null (org-caldav-event-status dbentry))
 	;; Event was deleted in Org
-	(org-caldav-debug-print 1
-	 (format "Cal UID %s: Deleted in Org" (car cur)))
+	(org-caldav-debug-print 1 (format "Cal UID %s: Deleted in Org" (car cur)))
 	(org-caldav-event-set-status dbentry 'deleted-in-org))
        ((eq (org-caldav-event-status dbentry) 'in-org)
-	(org-caldav-debug-print 1
-	 (format "Cal UID %s: Synced" (car cur)))
+	(org-caldav-debug-print 1 (format "Cal UID %s: Synced" (car cur)))
 	(org-caldav-event-set-status dbentry 'synced))
        ((eq (org-caldav-event-status dbentry) 'changed-in-org)
 	;; Do nothing
 	)
        (t
-	(error "Unknown status; this is probably a bug."))))
+	(error "Unknown status; this is probably a bug"))))
     ;; Mark events deleted in cal.
     (dolist (cur (org-caldav-filter-events 'in-org))
-      (org-caldav-debug-print 1
-       (format "Cal UID %s: Deleted in Cal" (car cur)))
+      (org-caldav-debug-print 1 (format "Cal UID %s: Deleted in Cal" (car cur)))
       (org-caldav-event-set-status cur 'deleted-in-cal))))
 
 (defun org-caldav-generate-md5-for-org-entry (uid)
   "Find Org entry with UID and calculate its MD5."
   (let ((marker (org-id-find uid t)))
     (when (null marker)
-      (error "Could not find UID %s." uid))
+      (error "Could not find UID %s" uid))
     (with-current-buffer (marker-buffer marker)
       (goto-char (marker-position marker))
       (md5 (buffer-substring-no-properties
@@ -771,7 +768,7 @@ If RESUME is non-nil, try to resume."
       (dolist (filename (append org-caldav-files
 				(list (org-caldav-inbox-file org-caldav-inbox))))
         (when (not (file-exists-p filename))
-          (if (yes-or-no-p (format "File %s does not exist, create it?" filename))
+          (if (yes-or-no-p (format "File %s does not exist, create it? " filename))
               (write-region "" nil filename)
             (user-error "File %s does not exist" filename))))
       ;; Check if we need to do OAuth2
@@ -836,7 +833,7 @@ If RESUME is non-nil, try to resume."
 	   (not (eq org-caldav-resume-aborted 'never))
 	   (or (eq org-caldav-resume-aborted 'always)
 	       (and (eq org-caldav-resume-aborted 'ask)
-	            (y-or-n-p "Last sync seems to have been aborted. \
+	            (y-or-n-p "Last sync seems to have been aborted.  \
 Should I try to resume? "))))
       (org-caldav-sync-calendar org-caldav-previous-calendar t)
     (setq org-caldav-sync-result nil)
@@ -867,9 +864,9 @@ ICSBUF is the buffer containing the exported iCalendar file."
 	(setq counter (1+ counter))
 	(if (eq (org-caldav-event-etag cur) 'put)
 	    (org-caldav-debug-print 1
-	     (format "Event UID %s: Was already put previously." (car cur)))
+	                            (format "Event UID %s: Was already put previously." (car cur)))
 	  (org-caldav-debug-print 1
-	   (format "Event UID %s: Org --> Cal" (car cur)))
+	                          (format "Event UID %s: Org --> Cal" (car cur)))
 	  (widen)
 	  (goto-char (point-min))
 	  (while (and (setq uid (org-caldav-get-uid))
@@ -884,7 +881,7 @@ ICSBUF is the buffer containing the exported iCalendar file."
 	  (if (org-caldav-put-event icsbuf)
 	      (org-caldav-event-set-etag cur 'put)
 	    (org-caldav-debug-print 1
-	     (format "Event UID %s: Error while doing Org --> Cal" (car cur)))
+	                            (format "Event UID %s: Error while doing Org --> Cal" (car cur)))
 	    (org-caldav-event-set-status cur 'error)
 	    (push (list org-caldav-calendar-id (car cur)
 			'error 'error:org->cal)
@@ -907,9 +904,9 @@ ICSBUF is the buffer containing the exported iCalendar file."
 	(dolist (cur events)
 	  (setq counter (1+ counter))
 	  (when (or (eq org-caldav-delete-calendar-entries 'always)
-		    (y-or-n-p (format "Delete event '%s' from calendar?"
-				       (org-caldav-get-calendar-summary-from-uid
-					(car cur)))))
+		    (y-or-n-p (format "Delete event '%s' from calendar? "
+				      (org-caldav-get-calendar-summary-from-uid
+				       (car cur)))))
 	    (message "Deleting event %d from %d" counter (length events))
 	    (org-caldav-delete-event (car cur))
 	    (push (list org-caldav-calendar-id (car cur)
@@ -1071,7 +1068,7 @@ which can only be synced to calendar. Ignoring." uid))
 	   1 (format "Event UID %s: Changed in Cal --> Org" uid))
 	  (let ((marker (org-id-find (car cur) t)))
 	    (when (null marker)
-	      (error "Could not find UID %s." (car cur)))
+	      (error "Could not find UID %s" (car cur)))
 	    (with-current-buffer (marker-buffer marker)
 	      (goto-char (marker-position marker))
 	      (when org-caldav-backup-file
@@ -1121,7 +1118,7 @@ which can only be synced to calendar. Ignoring." uid))
 	(setq org-caldav-event-list
 	      (delete cur org-caldav-event-list))
 	(org-caldav-debug-print 1
-	 (format "Event UID %s: Deleted from Org" (car cur)))
+	                        (format "Event UID %s: Deleted from Org" (car cur)))
 	(push (list org-caldav-calendar-id (car cur)
 		    'deleted-in-cal 'removed-from-org)
 	      org-caldav-sync-result)))))
@@ -1150,8 +1147,8 @@ which can only be synced to calendar. Ignoring." uid))
   (widen))
 
 (defun org-caldav-change-location (newlocation)
-  "Change the LOCATION property from ORG item under point to
-NEWLOCATION. If NEWLOCATION is \"\", removes the location property. If
+  "Change the LOCATION property from ORG item under point to NEWLOCATION.
+If NEWLOCATION is \"\", removes the location property. If
 NEWLOCATION contains newlines, replace them with
 `org-caldav-location-newline-replacement'."
   (let ((replacement org-caldav-location-newline-replacement))
@@ -1162,9 +1159,8 @@ NEWLOCATION contains newlines, replace them with
       (org-delete-property "LOCATION"))))
 
 (defun org-caldav-change-class (newclass)
-  "Change the CLASS property from ORG item under point to
-NEWCLASS. If newclass is \"\", removes the class
-property."
+  "Change the CLASS property from ORG item under point to NEWCLASS.
+If newclass is \"\", removes the class property."
   (if (> (length newclass) 0)
       (org-set-property "CLASS" newclass)
     (org-delete-property "CLASS")))
@@ -1202,7 +1198,7 @@ is on s-expression."
 (defun org-caldav-create-uid (file &optional bell)
   "Set ID property on headlines missing it in FILE.
 When optional argument BELL is non-nil, inform the user with
-a message if the file was modified. This func is the same as
+a message if the file was modified.  This func is the same as
 org-icalendar-create-uid except that it ignores entries that
 match org-caldav-skip-conditions."
   (let (modified-flag)
@@ -1279,7 +1275,7 @@ Returns buffer containing the ICS file."
 	(when (string-match "^\\(\\(DL\\|SC\\|TS\\)[0-9]*-\\)" uid)
 	  (setq uid (replace-match "" nil nil uid)))
 	uid)
-    (error "No UID could be found for current event.")))
+    (error "No UID could be found for current event")))
 
 (defun org-caldav-narrow-next-event ()
   "Narrow next event in the current buffer.
@@ -1305,7 +1301,7 @@ Returns nil if there are no more events."
   "Narrow ics event in the current buffer under point."
   (unless (looking-at "BEGIN:VEVENT")
     (when (null (search-backward "BEGIN:VEVENT" nil t))
-      (error "Cannot find event under point."))
+      (error "Cannot find event under point"))
     (beginning-of-line))
   (narrow-to-region (point)
 		    (save-excursion
@@ -1316,8 +1312,8 @@ Returns nil if there are no more events."
 (defun org-caldav-rewrite-uid-in-event ()
   "Rewrite UID in current buffer.
 This will strip prefixes like 'DL' or 'TS' the Org exporter puts
-in the UID and also remove whitespaces. Throws an error if there
-is no UID to rewrite. Returns the UID."
+in the UID and also remove whitespaces.  Throw an error if there
+is no UID to rewrite.  Return the UID."
   (save-excursion
     (goto-char (point-min))
     (let ((uid (org-caldav-get-uid)))
@@ -1352,7 +1348,7 @@ Do nothing if LEVEL is larger than `org-caldav-debug-level'."
                                             summary description location class
                                             &optional uid level)
   "Insert org block from given data at current position.
-START/END-D: Start/End date.  START/END-T: Start/End time.
+START-D/END-D: Start/End date.  START-T/END-T: Start/End time.
 SUMMARY, DESCRIPTION, LOCATION, CLASS, UID: obvious.
 Dates must be given in a format `org-read-date' can parse.
 
@@ -1364,7 +1360,7 @@ If LEVEL is nil, it defaults to 1.
 Returns MD5 from entry."
   (insert (make-string (or level 1) ?*) " " summary "\n")
   (insert (if org-adapt-indentation "  " "")
-   (org-caldav-create-time-range start-d start-t end-d end-t) "\n")
+          (org-caldav-create-time-range start-d start-t end-d end-t) "\n")
   (when (> (length description) 0)
     (insert "  " description "\n"))
   (forward-line -1)
@@ -1380,7 +1376,7 @@ Returns MD5 from entry."
 	(org-entry-end-position))))
 
 (defun org-caldav-create-time-range (start-d start-t end-d end-t)
-  "Creeate an Org timestamp range from START-D/T, END-D/T."
+  "Creeate an Org timestamp range from START-D/START-T, END-D/END-T."
   (with-temp-buffer
     (org-caldav-insert-org-time-stamp start-d start-t)
     (if (and end-d
@@ -1558,7 +1554,7 @@ If COMPLEMENT is non-nil, return all item without errors."
 ;; The LOCATION property is added the extracted list
 (defun org-caldav-convert-event ()
   "Convert icalendar event in current buffer.
-Returns a list '(start-d start-t end-d end-t summary description location class)'
+Return a list '(start-d start-t end-d end-t summary description location class)'
 which can be fed into `org-caldav-insert-org-entry'."
   (let ((decoded (decode-coding-region (point-min) (point-max) 'utf-8 t)))
     (erase-buffer)
@@ -1602,8 +1598,8 @@ which can be fed into `org-caldav-insert-org-entry'."
                     (or (icalendar--get-event-property e 'LOCATION)
                         "")))
 	 (class (icalendar--convert-string-for-import
-                    (or (icalendar--get-event-property e 'CLASS)
-                        "")))
+                 (or (icalendar--get-event-property e 'CLASS)
+                     "")))
 	 (rrule (icalendar--get-event-property e 'RRULE))
 	 (rdate (icalendar--get-event-property e 'RDATE))
 	 (duration (icalendar--get-event-property e 'DURATION)))
