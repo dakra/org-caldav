@@ -2,7 +2,7 @@
 ;; Copyright, authorship, license: see org-caldav.el.
 
 ;; Run it from the org-caldav directory like this:
-;;   emacs -Q -L . --eval '(setq org-caldav-url "CALDAV-URL")' -l org-caldav-testsuite.el -f ert
+;;   emacs -Q -L . --eval '(setq org-caldav-url "CALDAV-URL")' -l org-caldav-tests.el -f ert
 ;; On the server, there must already exist two calendars "test1" and "test2".
 ;; These will completely wiped by running this test!
 
