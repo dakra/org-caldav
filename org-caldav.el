@@ -4,7 +4,7 @@
 
 ;; Author: David Engster <deng@randomsample.de>
 ;; Keywords: calendar, caldav
-;; Package-Requires: ((emacs "24.3") (org "7"))
+;; Package-Requires: ((emacs "24.3") (org "8.3"))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -32,8 +32,7 @@
 
 (require 'url-dav)
 (require 'url-http) ;; b/c of Emacs bug
-(unless (require 'ox-icalendar nil t)
-  (require 'org-icalendar))
+(require 'ox-icalendar)
 (require 'org-id)
 (require 'icalendar)
 (require 'url-util)
@@ -412,9 +411,9 @@ configured correctly, and throw an user error otherwise."
         token))))
 
 (defun org-caldav-url-retrieve-synchronously (url &optional
-                                              request-method
-                                              request-data
-                                              extra-headers)
+                                                  request-method
+                                                  request-data
+                                                  extra-headers)
   "Retrieve URL with REQUEST-METHOD, REQUEST-DATA and EXTRA-HEADERS.
 This will switch to OAuth2 if necessary."
   (if (org-caldav-use-oauth2)
@@ -428,9 +427,9 @@ This will switch to OAuth2 if necessary."
       (url-retrieve-synchronously url))))
 
 (defun org-caldav-namespace-bug-workaround (buffer)
-  "Workaraound for Emacs bug #23440 on Emacs version <26.
+  "Workaround for Emacs bug #23440 on Emacs version <26.
 This is needed for the Radicale CalDAV server which uses DAV as
-default namespace."
+default namespace.  BUFFER is the resultbuffer from the request."
   (when (< emacs-major-version 26)
     (with-current-buffer buffer
       (save-excursion
@@ -878,7 +877,6 @@ ICSBUF is the buffer containing the exported iCalendar file."
             (error "Could not find UID %s" (car cur)))
           (org-caldav-narrow-event-under-point)
           (org-caldav-cleanup-ics-description)
-          (org-caldav-maybe-fix-timezone)
           (org-caldav-set-sequence-number cur event-etag)
           (message "Putting event %d of %d" counter (length events))
           (if (org-caldav-put-event icsbuf)
@@ -966,14 +964,6 @@ org-icalendar."
     (when (re-search-forward "^DESCRIPTION:.*?\\(\s*-*<[^>]+>\\(–<[^>]+>\\)?\\(\\\\n\\\\n\\)?\\)" nil t)
       (replace-match "" nil nil nil 1))))
 
-(defun org-caldav-maybe-fix-timezone ()
-  "Fix the timezone if it is all uppercase.
-This is a bug in older Org versions."
-  (unless (null org-icalendar-timezone)
-    (save-excursion
-      (goto-char (point-min))
-      (while (search-forward (upcase org-icalendar-timezone) nil t)
-        (replace-match org-icalendar-timezone t)))))
 
 (defun org-caldav-inbox-file (inbox)
   "Return file name associated with INBOX.
@@ -995,11 +985,7 @@ returned as a cons (POINT . LEVEL)."
          (save-excursion
            (let ((org-link-search-inhibit-query t)
                  level)
-             ;; org-link-search changed signature in v8.3
-             (with-no-warnings
-               (if (version< org-version "8.3")
-                   (org-link-search (concat "*" (nth 2 inbox)) nil nil t)
-                 (org-link-search (concat "*" (nth 2 inbox)) nil t)))
+             (org-link-search (concat "*" (nth 2 inbox)) nil t)
              (setq level (1+ (org-current-level)))
              (org-end-of-subtree t t)
              (cons (point) level))))
@@ -1226,10 +1212,7 @@ match org-caldav-skip-conditions."
 (defun org-caldav-generate-ics ()
   "Generate ICS file from `org-caldav-files'.
 Returns buffer containing the ICS file."
-  (let ((icalendar-file
-         (if (featurep 'ox-icalendar)
-             'org-icalendar-combined-agenda-file
-           'org-combined-agenda-icalendar-file))
+  (let ((icalendar-file 'org-icalendar-combined-agenda-file)
         (orgfiles (let ((inbox-file (org-caldav-inbox-file org-caldav-inbox)))
                     (if (member inbox-file org-caldav-files)
                         org-caldav-files
@@ -1261,13 +1244,7 @@ Returns buffer containing the ICS file."
     (org-caldav-debug-print 1 (format "Generating ICS file %s."
                                       (symbol-value icalendar-file)))
     ;; Export events to one single ICS file.
-    (if (featurep 'ox-icalendar)
-        ;; New exporter (Org 8)
-        ;; Signature changed in version 8.3
-        (if (version< org-version "8.3beta")
-            (apply 'org-icalendar--combine-files nil orgfiles)
-          (apply 'org-icalendar--combine-files orgfiles))
-      (apply 'org-export-icalendar t orgfiles))
+    (apply 'org-icalendar--combine-files orgfiles)
     (find-file-noselect (symbol-value icalendar-file))))
 
 (defun org-caldav-get-uid ()
@@ -1378,7 +1355,10 @@ Returns MD5 from entry."
   (if (> (length class) 0)
       (org-set-property "CLASS" class)
     (org-delete-property "CLASS"))
-  (org-set-tags-to org-caldav-select-tags)
+  (if (version< org-version "9.2")
+      (with-no-warnings
+        (org-set-tags-to org-caldav-select-tags))
+    (org-set-tags org-caldav-select-tags))
   (md5 (buffer-substring-no-properties
         (org-entry-beginning-position)
         (org-entry-end-position))))
