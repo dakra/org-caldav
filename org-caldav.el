@@ -3,6 +3,9 @@
 ;; Copyright (C) 2012-2017 Free Software Foundation, Inc.
 
 ;; Author: David Engster <deng@randomsample.de>
+;; Maintainer: Daniel Kraus <daniel@kraus.my>
+;; URL: https://github.com/dakra/org-caldav.el
+;; Version: 0.1
 ;; Keywords: calendar, caldav
 ;; Package-Requires: ((emacs "24.3") (org "8.3"))
 ;;
