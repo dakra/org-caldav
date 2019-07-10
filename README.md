@@ -369,6 +369,23 @@ server should transpose the time to the timezone you have set in your
 calendar preferences. For some servers (like SOGo) this might work
 better than setting a "real" timezone.
 
+#### Nextcloud/https sync bug with gnutls >= 3.6 and Emacs <= 26.2
+
+There is a
+[bug](https://debbugs.gnu.org/cgi/bugreport.cgi?bug=34341) with
+Emacs and gnutls version >= 3.6.
+This results in a "400 The plain HTTP request was sent to HTTPS
+port" error when using https with TLS 1.3
+(See [this issue](https://github.com/dengste/org-caldav/issues/178)).
+The bug is fixed in Emacs versions > 26.2 (currently unreleased).
+
+As a workaround you add the following to your config:
+
+``` emacs-lisp
+(setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
+```
+
+
 #### Troubleshooting
 
 If org-caldav reports a problem with the given URL, please
