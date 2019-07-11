@@ -1,4 +1,4 @@
-;;; org-caldav.el --- Sync org files with external calendar through CalDAV
+;;; org-caldav.el --- Sync org files with external calendar through CalDAV  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012-2017 Free Software Foundation, Inc.
 
@@ -57,13 +57,12 @@ Set this to symbol \\='google to use Google Calendar, using OAuth2
 authentication.  In that case, also make sure that
 `browse-url-browser-function' is set to a Javascript-capable
 browser (like `browse-url-firefox').  Note that you need to have
-the OAuth2 library installed, and you will also have to set
-`org-caldav-oauth2-client-id' and
-`org-caldav-oauth2-client-secret' (see README).
+the `org-caldav-oauth2' addon installed, and you will also have to set
+`org-caldav-oauth2-client-id' and `org-caldav-oauth2-client-secret'.
+See README for more details.
 
 In general, if this variable is a symbol, do OAuth2
-authentication with access URIs set in
-`org-caldav-oauth2-providers'."
+authentication with access URIs set in `org-caldav-oauth2-providers'."
   :type 'string)
 
 (defcustom org-caldav-calendar-id "mycalendar"
@@ -231,40 +230,11 @@ always = Always resume"
           (const never :tag "Never resume")
           (const always :tag "Always resume")))
 
-(defcustom org-caldav-oauth2-providers
-  '((google "https://accounts.google.com/o/oauth2/auth"
-            "https://accounts.google.com/o/oauth2/token"
-            "https://www.googleapis.com/auth/calendar"
-            "https://apidata.googleusercontent.com/caldav/v2/%s/events"))
-  "List of providers that need OAuth2.
-
-Each must be of the form
-
-    IDENTIFIER AUTH-URL TOKEN-URL RESOURCE-URL CALENDAR-URL
-
-where IDENTIFIER is a symbol that can be set in `org-caldav-url'
-and '%s' in the CALENDAR-URL denotes where
-`org-caldav-calendar-id' must be placed to generate a valid
-events URL for a calendar."
-  :type 'list)
-
-(defcustom org-caldav-oauth2-client-id nil
-  "Client ID for OAuth2 authentication."
-  :type 'string)
-
-(defcustom org-caldav-oauth2-client-secret nil
-  "Client secret for OAuth2 authentication."
-  :type 'string)
-
 (defcustom org-caldav-location-newline-replacement ", "
   "String to replace newlines in the LOCATION field with."
   :type 'string)
 
 ;; Internal variables
-(defvar org-caldav-oauth2-available
-  (condition-case nil (require 'oauth2) (error))
-  "Whether oauth2 library is available.")
-
 (defvar org-caldav-previous-calendar nil
   "The plist from org-caldav-calendars, which holds the last synced calendar.
 Used to properly resume an interupted attempt.")
@@ -289,12 +259,12 @@ and  action = {org->cal, cal->org, error:org->cal, error:cal->org}.")
 (defvar org-caldav-ics-buffer nil
   "Buffer holding the ICS data.")
 
-(defvar org-caldav-oauth2-tokens nil
-  "Tokens for OAuth2 authentication.")
-
 (defvar org-caldav-previous-files nil
   "Files that were synced during previous run.")
 
+
+(declare-function org-caldav-oauth2-retrieve-token "org-caldav-oauth2")
+(declare-function org-caldav-oauth2-url-retrieve-synchronously "org-caldav-oauth2")
 
 (defsubst org-caldav-add-event (uid md5 etag sequence status)
   "Add event with UID, MD5, ETAG, SEQUENCE and STATUS."
@@ -338,8 +308,10 @@ and  action = {org->cal, cal->org, error:org->cal, error:cal->org}.")
   "Set sequence number from EVENT to SEQNUM."
   (setcar (nthcdr 3 event) seqnum))
 
-(defsubst org-caldav-use-oauth2 ()
-  (symbolp org-caldav-url))
+(defsubst org-caldav-use-oauth ()
+  "Return t if `org-caldav-url' is a symbol which means we should use oauth."
+  (when (symbolp org-caldav-url)
+    (require 'org-caldav-oauth2)))
 
 (defun org-caldav-filter-events (status)
   "Return list of events with STATUS."
@@ -355,9 +327,7 @@ and  action = {org->cal, cal->org, error:org->cal, error:cal->org}.")
 (defun org-caldav-check-dav (url)
   "Check if URL accepts DAV requests.
 Report an error with further details if that is not the case."
-  (let* ((buffer (org-caldav-url-retrieve-synchronously url "OPTIONS"))
-         (header nil)
-         (options nil))
+  (let* ((buffer (org-caldav-url-retrieve-synchronously url "OPTIONS")))
     (when (not buffer)
       (error "Retrieving URL %s failed" url))
     (with-current-buffer buffer
@@ -377,53 +347,14 @@ Report an error with further details if that is not the case."
           (error "The URL %s does not accept DAV requests" url)))))
   t)
 
-(defun org-caldav-check-oauth2 (provider)
-  "Check if we have to do OAuth2 authentication for PROVIDER.
-If that is the case, also check that everything is installed and
-configured correctly, and throw an user error otherwise."
-  (when (null (assoc provider org-caldav-oauth2-providers))
-    (user-error (concat "No OAuth2 provider found for %s in "
-                        "`org-caldav-oauth2-providers'")
-                (symbol-name provider)))
-  (when (not org-caldav-oauth2-available)
-    (user-error (concat "Oauth2 library is missing "
-                        "(install from GNU ELPA)")))
-  (when (or (null org-caldav-oauth2-client-id)
-            (null org-caldav-oauth2-client-secret))
-    (user-error (concat "You need to set oauth2 client ID and secret "
-                        "for OAuth2 authentication"))))
-
-(defun org-caldav-retrieve-oauth2-token (provider calendar-id)
-  "Do OAuth2 authentication for PROVIDER with CALENDAR-ID."
-  (let ((cached-token
-         (assoc
-          (concat (symbol-name provider) "__" calendar-id)
-          org-caldav-oauth2-tokens)))
-    (if cached-token
-        (cdr cached-token)
-      (let* ((ids (assoc provider org-caldav-oauth2-providers))
-             (token (oauth2-auth-and-store (nth 1 ids) (nth 2 ids) (nth 3 ids)
-                                           org-caldav-oauth2-client-id
-                                           org-caldav-oauth2-client-secret)))
-        (when (null token)
-          (user-error "OAuth2 authentication failed"))
-        (setq org-caldav-oauth2-tokens
-              (append org-caldav-oauth2-tokens
-                      (list (cons (concat (symbol-name provider) "__" calendar-id)
-                                  token))))
-        token))))
-
 (defun org-caldav-url-retrieve-synchronously (url &optional
                                                   request-method
                                                   request-data
                                                   extra-headers)
   "Retrieve URL with REQUEST-METHOD, REQUEST-DATA and EXTRA-HEADERS.
 This will switch to OAuth2 if necessary."
-  (if (org-caldav-use-oauth2)
-      (oauth2-url-retrieve-synchronously
-       (org-caldav-retrieve-oauth2-token org-caldav-url org-caldav-calendar-id)
-       url request-method request-data
-       extra-headers)
+  (if (org-caldav-use-oauth)
+      (org-caldav-oauth2-url-retrieve-synchronously url request-method request-data extra-headers)
     (let ((url-request-method request-method)
           (url-request-data request-data)
           (url-request-extra-headers extra-headers))
@@ -584,9 +515,7 @@ The filename will be derived from the UID."
         (org-caldav-debug-print 2 (format "Content of event UID %s: " uid)
                                 (buffer-string))
         (setq org-caldav-empty-calendar nil)
-        (org-caldav-save-resource
-         (concat (org-caldav-events-url) uid org-caldav-uuid-extension)
-         (encode-coding-string (buffer-string) 'utf-8))))))
+        (org-caldav-save-resource url (encode-coding-string (buffer-string) 'utf-8))))))
 
 (defun org-caldav-url-dav-delete-file (url)
   "Delete URL.
@@ -638,8 +567,9 @@ Are you really sure? ")))
 (defun org-caldav-events-url ()
   "Return URL for events."
   (let* ((url
-          (if (org-caldav-use-oauth2)
-              (nth 4 (assoc org-caldav-url org-caldav-oauth2-providers))
+          (if (org-caldav-use-oauth)
+              (with-no-warnings
+                (nth 4 (assoc org-caldav-url org-caldav-oauth2-providers)))
             org-caldav-url))
          (eventsurl
           (if (string-match ".*%s.*" url)
@@ -763,7 +693,7 @@ The format of CALENDAR is described in `org-caldav-calendars'.
 If CALENDAR is not provided, the default values will be used.
 If RESUME is non-nil, try to resume."
   (setq org-caldav-previous-calendar calendar)
-  (let (calkeys calvalues oauth-enable)
+  (let (calkeys calvalues)
     ;; Extrace keys and values from 'calendar' for progv binding.
     (dolist (i (number-sequence 0 (1- (length calendar)) 2))
       (setq calkeys (append calkeys (list (nth i calendar)))
@@ -776,11 +706,9 @@ If RESUME is non-nil, try to resume."
               (write-region "" nil filename)
             (user-error "File %s does not exist" filename))))
       ;; Check if we need to do OAuth2
-      (when (org-caldav-use-oauth2)
-        ;; We need to do oauth2. Check if it is available.
-        (org-caldav-check-oauth2 org-caldav-url)
-        ;; Retrieve token
-        (org-caldav-retrieve-oauth2-token org-caldav-url org-caldav-calendar-id))
+      (when (org-caldav-use-oauth)
+        ;; Retrieve OAuth2 token
+        (org-caldav-oauth2-retrieve-token org-caldav-url org-caldav-calendar-id))
       (let ((numretry 0)
             success)
         (while (null success)
@@ -986,12 +914,9 @@ returned as a cons (POINT . LEVEL)."
          (cons (point-max) 1))
         ((eq (car inbox) 'file+headline)
          (save-excursion
-           (let ((org-link-search-inhibit-query t)
-                 level)
-             (org-link-search (concat "*" (nth 2 inbox)) nil t)
-             (setq level (1+ (org-current-level)))
-             (org-end-of-subtree t t)
-             (cons (point) level))))
+           (org-link-search (concat "*" (nth 2 inbox)) nil t)
+           (org-end-of-subtree t t)
+           (cons (point) (1+ (org-current-level)))))
         ((eq (car inbox) 'id)
          (save-excursion
            (goto-char (cdr (org-id-find (nth 1 inbox))))
@@ -1591,8 +1516,8 @@ which can be fed into `org-caldav-insert-org-entry'."
          (class (icalendar--convert-string-for-import
                  (or (icalendar--get-event-property e 'CLASS)
                      "")))
-         (rrule (icalendar--get-event-property e 'RRULE))
-         (rdate (icalendar--get-event-property e 'RDATE))
+         ;; (rrule (icalendar--get-event-property e 'RRULE))
+         ;; (rdate (icalendar--get-event-property e 'RDATE))
          (duration (icalendar--get-event-property e 'DURATION)))
     ;; check whether start-time is missing
     (if (and dtstart
