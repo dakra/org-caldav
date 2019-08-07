@@ -128,7 +128,7 @@ moose
 (defun org-caldav-test-calendar-empty-p ()
   "Check if calendar is empty."
   (let ((output (org-caldav-url-dav-get-properties
-		 (org-caldav-events-url) "resourcetype")))
+                 (org-caldav-events-url) "resourcetype")))
     (unless (eq (plist-get (cdar output) 'DAV:status) 200)
       (error "Could not query CalDAV URL %s: %s." (org-caldav-events-url) (prin1-to-string output)))
     (= (length output) 1)))
@@ -146,7 +146,7 @@ moose
   "Put initial events to calendar."
   (message "PUT")
   (let ((org-caldav-calendar-preamble org-caldav-test-preamble)
-	events)
+        events)
     (with-temp-buffer
       (insert org-caldav-test-ics1)
       (should (org-caldav-put-event (current-buffer)))
@@ -155,7 +155,7 @@ moose
       (should (org-caldav-put-event (current-buffer))))
     (should
      (setq events
-	   (org-caldav-get-event-etag-list)))
+           (org-caldav-get-event-etag-list)))
     (should (assoc "orgcaldavtest@cal1" events))
     (should (assoc "orgcaldavtest-cal2" events))))
 
@@ -163,13 +163,13 @@ moose
   (let ((tmpdir (make-temp-file "org-caldav-test-" t)))
     (message "Using tempdir %s" tmpdir)
     (setq org-caldav-save-directory (expand-file-name "org-caldav-savedir" tmpdir)
-	  org-caldav-test-orgfile (expand-file-name "test.org" tmpdir)
-	  org-caldav-test-second-orgfile (expand-file-name "test-second.org" tmpdir)
-	  org-caldav-test-inbox (expand-file-name "inbox.org" tmpdir)
-	  org-id-locations-file (expand-file-name "org-id-locations" tmpdir)
-	  org-id-locations nil
-	  org-id-files nil
-	  org-caldav-test-current-tempdir tmpdir))
+          org-caldav-test-orgfile (expand-file-name "test.org" tmpdir)
+          org-caldav-test-second-orgfile (expand-file-name "test-second.org" tmpdir)
+          org-caldav-test-inbox (expand-file-name "inbox.org" tmpdir)
+          org-id-locations-file (expand-file-name "org-id-locations" tmpdir)
+          org-id-locations nil
+          org-id-files nil
+          org-caldav-test-current-tempdir tmpdir))
   (make-directory org-caldav-save-directory)
   (with-current-buffer (find-file-noselect org-caldav-test-inbox)
     (save-buffer)))
@@ -178,9 +178,9 @@ moose
   (dolist (name '("test.org" "test-second.org" "inbox.org" "org-id-locations"))
     (let ((buf (get-buffer name)))
       (when buf
-	(with-current-buffer buf
-	  (set-buffer-modified-p nil)
-	  (kill-buffer)))))
+        (with-current-buffer buf
+          (set-buffer-modified-p nil)
+          (kill-buffer)))))
   (setq org-id-locations nil)
   (when org-caldav-test-current-tempdir
     (delete-directory org-caldav-test-current-tempdir t)
@@ -210,16 +210,16 @@ moose
   (org-caldav-sync)
   ;; Check result.
   (should (member `(,org-caldav-calendar-id "orgcaldavtest@cal1" new-in-cal cal->org)
-		  org-caldav-sync-result))
+                  org-caldav-sync-result))
   (should (member `(,org-caldav-calendar-id "orgcaldavtest-cal2" new-in-cal cal->org)
-		  org-caldav-sync-result))
+                  org-caldav-sync-result))
   (should (member `(,org-caldav-calendar-id "orgcaldavtest@org1" new-in-org org->cal)
-		  org-caldav-sync-result))
+                  org-caldav-sync-result))
   (should (member `(,org-caldav-calendar-id "orgcaldavtest-org2" new-in-org org->cal)
-		  org-caldav-sync-result))
+                  org-caldav-sync-result))
   ;; State file should exist now.
   (should (file-exists-p
-	   (org-caldav-sync-state-filename org-caldav-calendar-id)))
+           (org-caldav-sync-state-filename org-caldav-calendar-id)))
   (let ((calevents (org-caldav-get-event-etag-list)))
     (should (= (length calevents) (length org-caldav-test-allevents)))
     ;; Org events should be in cal.
@@ -256,8 +256,8 @@ moose
   (message "3rd SYNC")
   (org-caldav-sync)
   (should (equal `((,org-caldav-calendar-id "orgcaldavtest-cal2" changed-in-org org->cal)
-		   (,org-caldav-calendar-id "orgcaldavtest-org2" changed-in-org org->cal))
-		 org-caldav-sync-result))
+                   (,org-caldav-calendar-id "orgcaldavtest-org2" changed-in-org org->cal))
+                 org-caldav-sync-result))
 
   ;; Check if those events correctly end up in calendar.
   (with-current-buffer (org-caldav-get-event "orgcaldavtest-cal2")
@@ -293,13 +293,13 @@ moose
       (replace-match "20121213" nil nil nil 2))
     (save-excursion
       (when (re-search-forward "SEQUENCE:\\s-*\\([0-9]+\\)" nil t)
-	(replace-match (number-to-string
-			(1+ (string-to-number (match-string 1))))
-		       nil t nil 1)))
+        (replace-match (number-to-string
+                        (1+ (string-to-number (match-string 1))))
+                       nil t nil 1)))
     (message "PUTting first changed event")
     (should (org-caldav-save-resource
-	     (concat (org-caldav-events-url) (url-hexify-string "orgcaldavtest@cal1.ics"))
-	     (encode-coding-string (buffer-string) 'utf-8))))
+             (concat (org-caldav-events-url) (url-hexify-string "orgcaldavtest@cal1.ics"))
+             (encode-coding-string (buffer-string) 'utf-8))))
 
   (with-current-buffer (org-caldav-get-event "orgcaldavtest@org1")
     (goto-char (point-min))
@@ -308,36 +308,36 @@ moose
       (replace-match "SUMMARY:This is a changed test"))
     (save-excursion
       (if (re-search-forward "DTSTART\\(;.*\\)?:\\(20121223T190000Z\\)" nil t)
-	  (replace-match "20121213T180000Z" nil nil nil 2)
-	(re-search-forward "DTSTART\\(;.*\\)?:\\(20121223T200000\\)")
-	(replace-match "20121213T190000" nil nil nil 2)))
+          (replace-match "20121213T180000Z" nil nil nil 2)
+        (re-search-forward "DTSTART\\(;.*\\)?:\\(20121223T200000\\)")
+        (replace-match "20121213T190000" nil nil nil 2)))
     (save-excursion
       (if (re-search-forward "DTEND\\(;.*\\)?:\\(20121223T200000Z\\)" nil t)
-	  (replace-match "20121213T190000Z" nil nil nil 2)
-	(re-search-forward "DTEND\\(;.*\\)?:\\(20121223T210000\\)")
-	(replace-match "20121213T200000" nil nil nil 2)))
+          (replace-match "20121213T190000Z" nil nil nil 2)
+        (re-search-forward "DTEND\\(;.*\\)?:\\(20121223T210000\\)")
+        (replace-match "20121213T200000" nil nil nil 2)))
     (save-excursion
       (when (re-search-forward "SEQUENCE:\\s-*\\([0-9]+\\)" nil t)
-	(replace-match (number-to-string
-			(1+ (string-to-number (match-string 1))))
-		       nil t nil 1)))
+        (replace-match (number-to-string
+                        (1+ (string-to-number (match-string 1))))
+                       nil t nil 1)))
     (message "PUTting second changed event")
     (should (org-caldav-save-resource
-	     (concat (org-caldav-events-url) "orgcaldavtest@org1.ics")
-	     (encode-coding-string (buffer-string) 'utf-8))))
+             (concat (org-caldav-events-url) "orgcaldavtest@org1.ics")
+             (encode-coding-string (buffer-string) 'utf-8))))
 
   ;; Aaaand sync!
   (message "4th SYNC")
   (org-caldav-sync)
 
   (should (equal `((,org-caldav-calendar-id "orgcaldavtest@cal1" changed-in-cal cal->org)
-		   (,org-caldav-calendar-id "orgcaldavtest@org1" changed-in-cal cal->org))
-		 org-caldav-sync-result))
+                   (,org-caldav-calendar-id "orgcaldavtest@org1" changed-in-cal cal->org))
+                 org-caldav-sync-result))
 
   (with-current-buffer (find-file-noselect org-caldav-test-inbox)
     (goto-char (point-min))
     (should (re-search-forward
-	     "* Changed test appointment Number 1
+             "* Changed test appointment Number 1
 \\s-*:PROPERTIES:
 \\s-*:ID:\\s-*orgcaldavtest@cal1
 \\s-*:END:
@@ -348,7 +348,7 @@ moose
   (with-current-buffer (find-file-noselect org-caldav-test-orgfile)
     (goto-char (point-min))
     (should (re-search-forward
-	     "* This is a changed test
+             "* This is a changed test
 \\s-*:PROPERTIES:
 \\s-*:ID:\\s-*orgcaldavtest@org1
 \\s-*:END:
@@ -367,7 +367,7 @@ moose
     (should-not (assoc '"orgcaldavtest@org1" calevents)))
   (should
    (equal org-caldav-sync-result
-	  `((,org-caldav-calendar-id "orgcaldavtest@org1" deleted-in-org removed-from-cal))))
+          `((,org-caldav-calendar-id "orgcaldavtest@org1" deleted-in-org removed-from-cal))))
   (should-not
    (assoc '"orgcaldavtest@org1" org-caldav-event-list))
 
@@ -381,7 +381,7 @@ moose
 
   (should
    (equal org-caldav-sync-result
-  	  `((,org-caldav-calendar-id "orgcaldavtest-org2" deleted-in-cal removed-from-org))))
+          `((,org-caldav-calendar-id "orgcaldavtest-org2" deleted-in-cal removed-from-org))))
   ;; There shouldn't be anything left in that buffer
   (with-current-buffer (find-file-noselect org-caldav-test-orgfile)
     (goto-char (point-min))
@@ -397,11 +397,11 @@ moose
   (with-current-buffer (get-buffer-create "headingtest")
     (erase-buffer)
     (insert "* This is a test without timestamp in headline\n"
-	    "  <2009-08-08 Sat 10:00>\n whatever\n foo\n bar\n")
+            "  <2009-08-08 Sat 10:00>\n whatever\n foo\n bar\n")
     (insert "* This is a test SCHEDULED: <2009-08-08 Sat> \n"
-	    "  whatever\n foo\n bar\n")
+            "  whatever\n foo\n bar\n")
     (insert "*  <2009-08-08 Sat 14:00>  This is another test\n"
-	    "  whatever\n foo\n bar\n")
+            "  whatever\n foo\n bar\n")
     (org-mode)
     (goto-char (point-min))
     (save-excursion
@@ -455,14 +455,14 @@ moose
   
   (let
       ((org-caldav-calendars
-	`((:calendar-id ,(car org-caldav-test-calendar-names)
-			:url ,org-caldav-url
-			:files (,org-caldav-test-orgfile)
-			:inbox ,org-caldav-test-orgfile)
-	  (:calendar-id ,(nth 1 org-caldav-test-calendar-names)
-			:url ,org-caldav-url
-			:files (,org-caldav-test-second-orgfile)
-			:inbox ,org-caldav-test-second-orgfile))))
+        `((:calendar-id ,(car org-caldav-test-calendar-names)
+                        :url ,org-caldav-url
+                        :files (,org-caldav-test-orgfile)
+                        :inbox ,org-caldav-test-orgfile)
+          (:calendar-id ,(nth 1 org-caldav-test-calendar-names)
+                        :url ,org-caldav-url
+                        :files (,org-caldav-test-second-orgfile)
+                        :inbox ,org-caldav-test-second-orgfile))))
     (org-caldav-sync))
 
   ;; Check that each calendar has one event
@@ -495,16 +495,16 @@ moose
   (message "Starting sync")
   (let
       ((org-caldav-calendars
-	`((:calendar-id ,(car org-caldav-test-calendar-names)
-			:url ,org-caldav-url
-			:skip-conditions  (regexp ":sometag:")
-			:files (,org-caldav-test-orgfile)
-			:inbox ,org-caldav-test-orgfile)
-	  (:calendar-id ,(nth 1 org-caldav-test-calendar-names)
-			:url ,org-caldav-url
-			:skip-conditions (notregexp ":sometag:")
-			:files (,org-caldav-test-orgfile)
-			:inbox ,org-caldav-test-orgfile))))
+        `((:calendar-id ,(car org-caldav-test-calendar-names)
+                        :url ,org-caldav-url
+                        :skip-conditions  (regexp ":sometag:")
+                        :files (,org-caldav-test-orgfile)
+                        :inbox ,org-caldav-test-orgfile)
+          (:calendar-id ,(nth 1 org-caldav-test-calendar-names)
+                        :url ,org-caldav-url
+                        :skip-conditions (notregexp ":sometag:")
+                        :files (,org-caldav-test-orgfile)
+                        :inbox ,org-caldav-test-orgfile))))
     (org-caldav-sync))
 
   ;; Check that each calendar has one event
@@ -546,9 +546,9 @@ moose
   (should (org-caldav-get-event "orgcaldavtest-cal2"))
   ;; Sync result
   (should (equal
-	   '(("test1" "orgcaldavtest@cal1" new-in-cal cal->org)
-	     ("test1" "orgcaldavtest-cal2" new-in-cal cal->org))
-	   org-caldav-sync-result))
+           '(("test1" "orgcaldavtest@cal1" new-in-cal cal->org)
+             ("test1" "orgcaldavtest-cal2" new-in-cal cal->org))
+           org-caldav-sync-result))
   (org-caldav-test-cleanup))
 
 ;; Check that we are able to detect when an Org file was removed from
@@ -579,12 +579,12 @@ moose
   (setq org-caldav-test-seen-prompt nil)
   (let (octest-seen-prompt)
     (cl-letf (((symbol-function 'yes-or-no-p)
-	       (lambda (prompt)
-		 (setq octest-seen-prompt prompt) nil)))
+               (lambda (prompt)
+                 (setq octest-seen-prompt prompt) nil)))
       (message "2nd sync")
       (should-error (org-caldav-sync))
       (should (string-match "WARNING: Previously synced"
-			    octest-seen-prompt))))
+                            octest-seen-prompt))))
   (org-caldav-test-cleanup))
 
 (ert-deftest org-caldav-test-multiline-location ()
@@ -595,6 +595,6 @@ moose
     (let ((orig-id (alist-get "ID" (org-entry-properties) nil nil #'string=)))
       (org-caldav-change-location "multi\nline")
       (let ((props (org-entry-properties)))
-	(should (string= (alist-get "ID" props nil nil #'string=) orig-id))
-	(should (string-match-p "multi" (alist-get "LOCATION" props nil nil #'string=)))
-	(should (string-match-p "line" (alist-get "LOCATION" props nil nil #'string=)))))))
+        (should (string= (alist-get "ID" props nil nil #'string=) orig-id))
+        (should (string-match-p "multi" (alist-get "LOCATION" props nil nil #'string=)))
+        (should (string-match-p "line" (alist-get "LOCATION" props nil nil #'string=)))))))
