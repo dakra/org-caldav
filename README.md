@@ -1,17 +1,15 @@
 # FORK NOTE
 
 This is a fork from https://github.com/dengste/org-caldav
-with the following patches applied:
+in which I applied a few PRs to get caldav working again
+while @dengste was unresponsive for a year.
+`org-caldav` is actively maintained again and you should
+use @dengste's version. I maintain this just for my
+own config as I changed to many small things
+that are not worth my time to bring upstream (unless someone
+else really wants them).
 
-- Change defvar to defcustom
-- Replace newlines in LOCATION with something we can store
-- Bugfix for org-caldav-update-events-in-org that called org-caldav-create-time-range with incorrect number of arguments when eventdata has unexpected length.
-- Implement CLASS attribute of ics files
-- Fix condition to check for aborted sync
-- Correctly exclude skipped entries before ics export
-
-This corresponds to PRs #141, #159, #161, #167, #169, #170, #180,
-#181 (and some commits where no PR for exists).
+You can see the difference [here](https://github.com/dengste/org-caldav/compare/master...dakra:master).
 
 
 # org-caldav
