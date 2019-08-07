@@ -328,21 +328,21 @@ and  action = {org->cal, cal->org, error:org->cal, error:cal->org}.")
   "Check if URL accepts DAV requests.
 Report an error with further details if that is not the case."
   (let* ((buffer (org-caldav-url-retrieve-synchronously url "OPTIONS")))
-    (when (not buffer)
+    (unless buffer
       (error "Retrieving URL %s failed" url))
     (with-current-buffer buffer
       (goto-char (point-min))
-      (when (not (re-search-forward "^HTTP[^ ]* \\([0-9]+ .*\\)$"
-                                    (point-at-eol) t))
+      (unless (re-search-forward "^HTTP[^ ]* \\([0-9]+ .*\\)$"
+                                 (point-at-eol) t)
         (switch-to-buffer buffer)
         (error "No valid HTTP response from URL %s" url))
       (let ((response (match-string 1)))
-        (when (not (string-match "2[0-9][0-9].*" response))
+        (unless (string-match "2[0-9][0-9].*" response)
           (switch-to-buffer buffer)
           (error "Error while checking for OPTIONS at URL %s: %s" url response)))
       (mail-narrow-to-head)
       (let ((davheader (mail-fetch-field "dav")))
-        (when (not davheader)
+        (unless davheader
           (switch-to-buffer buffer)
           (error "The URL %s does not accept DAV requests" url)))))
   t)
@@ -701,7 +701,7 @@ If RESUME is non-nil, try to resume."
     (cl-progv (mapcar 'org-caldav-var-for-key calkeys) calvalues
       (dolist (filename (append org-caldav-files
                                 (list (org-caldav-inbox-file org-caldav-inbox))))
-        (when (not (file-exists-p filename))
+        (unless (file-exists-p filename)
           (if (yes-or-no-p (format "File %s does not exist, create it? " filename))
               (write-region "" nil filename)
             (user-error "File %s does not exist" filename))))
