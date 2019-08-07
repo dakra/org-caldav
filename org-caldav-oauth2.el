@@ -38,10 +38,10 @@
 
 
 (defcustom org-caldav-oauth2-providers
-  '((google "https://accounts.google.com/o/oauth2/auth"
-            "https://accounts.google.com/o/oauth2/token"
-            "https://www.googleapis.com/auth/calendar"
-            "https://apidata.googleusercontent.com/caldav/v2/%s/events"))
+  '((google "https://accounts.google.com/o/oauth2/v2/auth"
+ 	    "https://www.googleapis.com/oauth2/v4/token"
+	    "https://www.googleapis.com/auth/calendar"
+	    "https://apidata.googleusercontent.com/caldav/v2/%s/events"))
   "List of providers that need OAuth2.
 
 Each must be of the form
