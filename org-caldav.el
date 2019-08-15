@@ -868,17 +868,18 @@ The ics must be in the current buffer."
         (when (null retrieve)
           ;; Retrieving the event failed... so let's just use '1' and
           ;; hope it works.
-          (org-caldav-debug-print 1 "UID %s: Failed to retrieve item from server." (car event))
-          (org-caldav-debug-print 1 "UID %s: Use sequence number 1 and hope for the best." (car event))
-          (setq seq 1))
+          (org-caldav-debug-print 1 (format "UID %s: Failed to retrieve item from server." (car event)))
+          (org-caldav-debug-print 1 (format "UID %s: Use sequence number 1 and hope for the best." (car event)))
+          (setq seq 0)) ;; incremented below
         (unless seq
           (with-current-buffer (org-caldav-get-event (car event))
             (goto-char (point-min))
-            (when (re-search-forward "^SEQUENCE:\\s-*\\([0-9]+\\)" nil t)
-              (org-caldav-event-set-sequence
-               event (string-to-number (match-string 1))))
-            (setq seq (org-caldav-event-sequence event))
-            (org-caldav-debug-print 1 "UID %s: Got sequence number %d" (car event) seq))))
+            (if (re-search-forward "^SEQUENCE:\\s-*\\([0-9]+\\)" nil t)
+                (progn
+                  (setq seq (string-to-number (match-string 1)))
+                  (org-caldav-debug-print 1 (format "UID %s: Got sequence number %d" (car event) seq)))
+              (org-caldav-debug-print 1 (format "UID %s: Event does not have sequence number, start with 1." (car event)))
+              (setq seq 0))))) ;; incremented below
       (when seq
         (setq seq (1+ seq))
         (goto-char (point-min))
