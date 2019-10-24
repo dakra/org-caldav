@@ -1286,6 +1286,7 @@ Returns MD5 from entry."
   (if (> (length class) 0)
       (org-set-property "CLASS" class)
     (org-delete-property "CLASS"))
+  (org-back-to-heading)
   (if (version< org-version "9.2")
       (with-no-warnings
         (org-set-tags-to org-caldav-select-tags))
@@ -1295,7 +1296,7 @@ Returns MD5 from entry."
         (org-entry-end-position))))
 
 (defun org-caldav-create-time-range (start-d start-t end-d end-t)
-  "Creeate an Org timestamp range from START-D/START-T, END-D/END-T."
+  "Create an Org timestamp range from START-D/START-T, END-D/END-T."
   (with-temp-buffer
     (org-caldav-insert-org-time-stamp start-d start-t)
     (if (and end-d
