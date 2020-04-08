@@ -1060,12 +1060,12 @@ which can only be synced to calendar. Ignoring." uid))
       ;; Check if a timestring is in the heading
       (goto-char start)
       (save-excursion
-        (when (re-search-forward org-maybe-keyword-time-regexp end t)
-          ;; Check if timestring is at the beginning or end of heading
-          (if (< (- end (match-end 0))
-                 (- (match-beginning 0) start))
-              (setq end (1- (match-beginning 0)))
-            (setq start (1+ (match-end 0))))))
+        (when (re-search-forward org-ts-regexp-both end t)
+ 	  ;; Check if timestring is at the beginning or end of heading
+ 	  (if (< (- end (match-end 0))
+ 		 (- (match-beginning 0) start))
+ 	      (setq end (1- (match-beginning 0)))
+ 	    (setq start (1+ (match-end 0))))))
       (delete-region start end)
       (goto-char start)
       (insert newheading)))
@@ -1099,7 +1099,11 @@ is on s-expression."
   (if (search-forward "<%%(" nil t)
       'orgsexp
     (when (or (re-search-forward org-tr-regexp nil t)
-              (re-search-forward org-maybe-keyword-time-regexp nil t))
+              (and (re-search-forward "org-planning-line-re" nil t)
+                   (org-at-planning-p)
+                   (progn
+                     (org-skip-whitespace)
+                     (looking-at org-ts-regexp-both))))
       (replace-match newtime nil t))
     (widen)))
 
